@@ -28,7 +28,6 @@ Controls:
 A               Play Game
 B               Exit Hub
 Left and Right  Change Selected Game
-+               Music Player
 ''')
 a=glob.glob('Games/*.py')
 pos=0
@@ -58,6 +57,3 @@ while True:
         main(wm)
     elif (wm.state['buttons'] & cwiid.BTN_B):
         sys.exit()
-    elif (wm.state['buttons'] & cwiid.BTN_PLUS):
-        import wiiplayer as music
-        music.main(wm)
