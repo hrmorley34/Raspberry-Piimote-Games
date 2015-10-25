@@ -1,4 +1,4 @@
-## Raspberry Piimote Games
-# Raspberry Pi Bluetooth Wiimote Games
+# Raspberry Piimote Games
+## Raspberry Pi Bluetooth Wiimote Games
 
 Requires Bluetooth, CWiiD, Python 2
