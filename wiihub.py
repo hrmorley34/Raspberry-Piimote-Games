@@ -56,4 +56,5 @@ while True:
         exec(g)
         main(wm)
     elif (wm.state['buttons'] & cwiid.BTN_B):
+        wm.close()
         sys.exit()

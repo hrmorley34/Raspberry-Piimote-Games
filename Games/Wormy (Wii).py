@@ -4,11 +4,29 @@ from pygame.locals import *
 FPS = 15
 WINDOWWIDTH = 640
 WINDOWHEIGHT = 480
-CELLSIZE = 20
-assert WINDOWWIDTH % CELLSIZE == 0, "Window width must be a multiple of cell size."
-assert WINDOWHEIGHT % CELLSIZE == 0, "Window height must be a multiple of cell size."
-CELLWIDTH = int(WINDOWWIDTH / CELLSIZE)
-CELLHEIGHT = int(WINDOWHEIGHT / CELLSIZE)
+
+sizem = 2
+ccclock = 0
+def cellchange():
+    global CELLSIZE, CELLWIDTH, CELLHEIGHT, sizem, ccclock
+    
+    if (wm.state['buttons'] & cwiid.BTN_1) and ccclock == 0:
+        sizem += 1
+        ccclock = 20
+    if (wm.state['buttons'] & cwiid.BTN_2) and ccclock == 0:
+        sizem -= 1
+        ccclock = 20
+    
+    sizem = ((sizem - 1) % 4) + 1
+    CELLSIZE = 5 * (2 ** (sizem-1))
+    assert WINDOWWIDTH % CELLSIZE == 0, "Window width must be a multiple of cell size."
+    assert WINDOWHEIGHT % CELLSIZE == 0, "Window height must be a multiple of cell size."
+    CELLWIDTH = int(WINDOWWIDTH / CELLSIZE)
+    CELLHEIGHT = int(WINDOWHEIGHT / CELLSIZE)
+    if ccclock > 0:
+        ccclock -= 1
+
+cellchange()
 
 #             R    G    B
 WHITE     = (255, 255, 255)
@@ -16,6 +34,7 @@ BLACK     = (  0,   0,   0)
 RED       = (255,   0,   0)
 GREEN     = (  0, 255,   0)
 DARKGREEN = (  0, 155,   0)
+BRIGHTGREEN=(155, 255, 155)
 DARKGRAY  = ( 40,  40,  40)
 BGCOLOR = BLACK
 
@@ -36,7 +55,7 @@ def main(wm):
     FPSCLOCK = pygame.time.Clock()
     DISPLAYSURF = pygame.display.set_mode((WINDOWWIDTH, WINDOWHEIGHT))
     BASICFONT = pygame.font.Font('freesansbold.ttf', 18)
-    pygame.display.set_caption('Wormy')
+    pygame.display.set_caption('Wormy Wii')
 
     showStartScreen(wm)
     while True:
@@ -52,8 +71,8 @@ def main(wm):
     return(0)
 
 def runGame(wm):# Set a random start point.
-    startx = random.randint(5, CELLWIDTH - 6)
-    starty = random.randint(5, CELLHEIGHT - 6)
+    startx = random.randint(10, CELLWIDTH - 11)
+    starty = random.randint(10, CELLHEIGHT - 11)
     wormCoords = [{'x': startx,     'y': starty},
                   {'x': startx - 1, 'y': starty},
                   {'x': startx - 2, 'y': starty}]
@@ -71,32 +90,37 @@ def runGame(wm):# Set a random start point.
                     terminate()
 
         if (wm.state['buttons'] & cwiid.BTN_UP):
-            direction=LEFT
+            if direction != RIGHT:
+                direction=LEFT
         elif (wm.state['buttons'] & cwiid.BTN_DOWN):
-            direction=RIGHT
+            if direction != LEFT:
+                direction=RIGHT
         elif (wm.state['buttons'] & cwiid.BTN_LEFT):
-            direction=DOWN
+            if direction != UP:
+                direction=DOWN
         elif (wm.state['buttons'] & cwiid.BTN_RIGHT):
-            direction=UP
+            if direction != DOWN:
+                direction=UP
         if (wm.state['buttons'] & cwiid.BTN_HOME):
             terminate()
             return(0)
 
-        # check if the worm has hit itself or the edge
-        if wormCoords[HEAD]['x'] == -1 or wormCoords[HEAD]['x'] == CELLWIDTH or wormCoords[HEAD]['y'] == -1 or wormCoords[HEAD]['y'] == CELLHEIGHT:
-            return # game over
+        if wormCoords[HEAD]['x'] <= -1 or wormCoords[HEAD]['x'] >= CELLWIDTH or wormCoords[HEAD]['y'] <= -1 or wormCoords[HEAD]['y'] >= CELLHEIGHT:
+            # When moving off one side move onto the other
+            wormCoords[HEAD]['x'] = wormCoords[HEAD]['x'] % CELLWIDTH
+            wormCoords[HEAD]['y'] = wormCoords[HEAD]['y'] % CELLHEIGHT
         for wormBody in wormCoords[1:]:
             if wormBody['x'] == wormCoords[HEAD]['x'] and wormBody['y'] == wormCoords[HEAD]['y']:
-                return # game over
+                return
 
         # check if worm has eaten an apply
         if wormCoords[HEAD]['x'] == apple['x'] and wormCoords[HEAD]['y'] == apple['y']:
-            # don't remove worm's tail segment
+            wm.rumble = True
             apple = getRandomLocation() # set a new apple somewhere
         else:
+            wm.rumble = False
             del wormCoords[-1] # remove worm's tail segment
 
-        # move the worm by adding a segment in the direction it is moving
         if direction == UP:
             newHead = {'x': wormCoords[HEAD]['x'], 'y': wormCoords[HEAD]['y'] - 1}
         elif direction == DOWN:
@@ -111,6 +135,9 @@ def runGame(wm):# Set a random start point.
         drawWorm(wormCoords)
         drawApple(apple)
         drawScore(len(wormCoords) - 3)
+        cellchange()
+        if ccclock == 19:
+            apple = getRandomLocation()
         pygame.display.update()
         FPSCLOCK.tick(FPS)
 
@@ -120,9 +147,12 @@ def drawPressKeyMsg():
     pressKeyRect.topleft = (WINDOWWIDTH - 200, WINDOWHEIGHT - 30)
     DISPLAYSURF.blit(pressKeySurf, pressKeyRect)
 
+def drawSizeMsg():
+    chsizeSurf = BASICFONT.render('Press 1/2 to change the square sizes.', True, DARKGRAY)
+    chsizeRect = chsizeSurf.get_rect()
+    chsizeRect.topleft = (100, WINDOWHEIGHT - 30)
+    DISPLAYSURF.blit(chsizeSurf, chsizeRect)
 
-
-# KRT 14/06/2012 rewrite event detection to deal with mouse use
 def checkForKeyPress():
     for event in pygame.event.get():
         if event.type == QUIT:      #event is quit 
@@ -140,11 +170,12 @@ def showStartScreen(wm):
     titleFont = pygame.font.Font('freesansbold.ttf', 100)
     titleSurf1 = titleFont.render('Wormy!', True, WHITE, DARKGREEN)
     titleSurf2 = titleFont.render('Wormy!', True, GREEN)
+    titleSurf3 = titleFont.render('Wormy!', True, BRIGHTGREEN)
 
     degrees1 = 0
     degrees2 = 0
+    degrees3 = 0
     
-#KRT 14/06/2012 rewrite event detection to deal with mouse use
     pygame.event.get()  #clear out event queue
     
     while True:
@@ -158,18 +189,31 @@ def showStartScreen(wm):
         rotatedRect2 = rotatedSurf2.get_rect()
         rotatedRect2.center = (WINDOWWIDTH / 2, WINDOWHEIGHT / 2)
         DISPLAYSURF.blit(rotatedSurf2, rotatedRect2)
+        
+        rotatedSurf3 = pygame.transform.rotate(titleSurf3, degrees3)
+        rotatedRect3 = rotatedSurf3.get_rect()
+        rotatedRect3.center = (WINDOWWIDTH / 2, WINDOWHEIGHT / 2)
+        DISPLAYSURF.blit(rotatedSurf3, rotatedRect3)
 
         drawPressKeyMsg()
-#KRT 14/06/2012 rewrite event detection to deal with mouse use
+        drawSizeMsg()
+        
         if (wm.state['buttons'] & cwiid.BTN_A):
             break
         elif (wm.state['buttons'] & cwiid.BTN_HOME):
             terminate()
             return(0)
+        
+        cellchange()
+        if ccclock == 19:
+            apple = getRandomLocation()
+        
         pygame.display.update()
         FPSCLOCK.tick(FPS)
-        degrees1 += 3 # rotate by 3 degrees each frame
-        degrees2 += 7 # rotate by 7 degrees each frame
+        
+        degrees1 += 3
+        degrees2 += 9
+        degrees3 += 15
 
 def terminate():
     pygame.quit()
@@ -191,7 +235,6 @@ def showGameOverScreen(wm):
     drawPressKeyMsg()
     pygame.display.update()
     pygame.time.wait(500)
-#KRT 14/06/2012 rewrite event detection to deal with mouse use
     pygame.event.get()  #clear out event queue 
     while True:
         if (wm.state['buttons'] & cwiid.BTN_A):
@@ -199,7 +242,9 @@ def showGameOverScreen(wm):
         elif (wm.state['buttons'] & cwiid.BTN_HOME):
             terminate()
             return(0)
-#KRT 12/06/2012 reduce processor loading in gameover screen.
+        cellchange()
+        if ccclock == 19:
+            apple = getRandomLocation()
         pygame.time.wait(100)
 
 def drawScore(score):
