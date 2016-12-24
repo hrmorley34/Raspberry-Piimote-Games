@@ -2,8 +2,11 @@ import random, sys, time, math, pygame, cwiid
 from pygame.locals import *
 
 FPS = 30 # frames per second to update the screen
-WINWIDTH = 640 # width of the program's window, in pixels
-WINHEIGHT = 480 # height in pixels
+try:
+    WINWIDTH, WINHEIGHT = SIZE
+except NameError:
+    WINWIDTH = 640
+    WINHEIGHT = 480
 HALF_WINWIDTH = int(WINWIDTH / 2)
 HALF_WINHEIGHT = int(WINHEIGHT / 2)
 
@@ -18,8 +21,8 @@ BOUNCEHEIGHT = 30    # how high the player bounces
 STARTSIZE = 25       # how big the player starts off
 WINSIZE = 300        # how big the player needs to be to win
 INVULNTIME = 2       # how long the player is invulnerable after being hit in seconds
-GAMEOVERTIME = 4     # how long the "game over" text stays on the screen in seconds
-MAXHEALTH = 3        # how much health the player starts with
+GAMEOVERTIME = 3     # how long the "game over" text stays on the screen in seconds
+MAXHEALTH = 5        # how much health the player starts with
 
 NUMGRASS = 80        # number of grass objects in the active area
 NUMSQUIRRELS = 30    # number of squirrels in the active area
@@ -73,13 +76,20 @@ Grass data structure keys:
         pygame.Surface object in GRASSIMAGES used for this grass object
 """
 
-def main(wm):
+def main(wm, ds=None, fpsc=None):
     global FPSCLOCK, DISPLAYSURF, BASICFONT, L_SQUIR_IMG, R_SQUIR_IMG, GRASSIMAGES
 
-    pygame.init()
-    FPSCLOCK = pygame.time.Clock()
+    if not DIC:
+        pygame.init()
+    if not fpsc:
+        FPSCLOCK = pygame.time.Clock()
+    else:
+        FPSCLOCK = fpsc
     pygame.display.set_icon(pygame.image.load('Data/gameicon.png'))
-    DISPLAYSURF = pygame.display.set_mode((WINWIDTH, WINHEIGHT))
+    if not ds:
+        DISPLAYSURF = pygame.display.set_mode((WINWIDTH, WINHEIGHT))
+    else:
+        DISPLAYSURF = ds
     pygame.display.set_caption('Squirrel Eat Squirrel')
     BASICFONT = pygame.font.Font('freesansbold.ttf', 32)
 
@@ -327,7 +337,8 @@ def drawHealthMeter(currentHealth):
 
 
 def terminate():
-    pygame.quit()
+    if not DIC:
+        pygame.quit()
 
 def getBounceAmount(currentBounce, bounceRate, bounceHeight):
     # Returns the number of pixels to offset based on the bounce.

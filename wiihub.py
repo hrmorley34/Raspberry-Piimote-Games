@@ -1,7 +1,10 @@
+#!/usr/bin/python
 # -*- encoding: utf-8 -*-
 import sys, cwiid, glob, time, pickle
 from os import system
 global wm
+
+DIC = False
 
 x=0
 while True:
@@ -16,8 +19,8 @@ while True:
     if x>=10:
         sys.exit()
 print('Found')
-wm.led = 1
 wm.rpt_mode = cwiid.RPT_BTN | cwiid.RPT_ACC
+wm.led = 1
 
 print('''Hold your Wiimote sideways; like this:
 --------------
@@ -31,7 +34,11 @@ Left and Right  Change Selected Game
 ''')
 a=glob.glob('Games/*.py')
 pos=0
-item='Current game: '+a[pos][6:-3]
+
+try:
+    item='Current game: '+a[pos][6:-3]
+except IndexError:
+    item='There are no games.'
 print(item)
 
 while True:
@@ -39,22 +46,25 @@ while True:
         pos=pos-1
         if pos<0:
             pos=len(a)-1
-        item='Current game: '+a[pos][6:-3]
+        if item != 'There are no games.':
+            item='Current game: '+a[pos][6:-3]
         print(item)
         time.sleep(0.5)
     elif (wm.state['buttons'] & cwiid.BTN_DOWN):
         pos=pos+1
         if pos>len(a)-1:
             pos=0
-        item='Current game: '+a[pos][6:-3]
+        if item != 'There are no games.':
+            item='Current game: '+a[pos][6:-3]
         print(item)
         time.sleep(0.5)
     elif (wm.state['buttons'] & cwiid.BTN_A):
-        f=open(a[pos],mode='r')
-        g=f.read()
-        f.close()
-        exec(g)
-        main(wm)
+        if item != 'There are no games.':
+            f=open(a[pos],mode='r')
+            g=f.read()
+            f.close()
+            exec(g)
+            main(wm)
     elif (wm.state['buttons'] & cwiid.BTN_B):
         wm.close()
         sys.exit()

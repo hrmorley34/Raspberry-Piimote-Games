@@ -2,11 +2,14 @@ import random, time, pygame, cwiid, sys
 from pygame.locals import *
 
 FPS = 25
-WINDOWWIDTH = 640
-WINDOWHEIGHT = 480
+try:
+    WINDOWWIDTH, WINDOWHEIGHT = SIZE
+except NameError:
+    WINDOWWIDTH = 640
+    WINDOWHEIGHT = 480
 BOXSIZE = 10
-BOARDWIDTH = 20
-BOARDHEIGHT = 40
+BOARDWIDTH = (WINDOWWIDTH / (2*BOXSIZE)) - 2
+BOARDHEIGHT = (WINDOWHEIGHT / (BOXSIZE)) - 2
 BLANK = '.'
 QUIT = 0
 
@@ -53,22 +56,22 @@ SHAPE1_TEMPLATE = [['.....',
 
 SHAPE2_TEMPLATE = [['.....',
                      '..OO.',
-                     '.OO..',
+                     '..O..',
                      '..OO.',
                      '.....'],
                     ['.....',
-                     '..O..',
+                     '.....',
                      '.OOO.',
                      '.O.O.',
                      '.....'],
                     ['.....',
                      '.O.O.',
                      '.OOO.',
-                     '..O..',
+                     '.....',
                      '.....'],
                     ['.....',
                      '.OO..',
-                     '..OO.',
+                     '..O..',
                      '.OO..',
                      '.....']]
 
@@ -81,12 +84,27 @@ SHAPE3_TEMPLATE = [['.....',
                      '.....',
                      'OOOO.',
                      '.....',
+#                     '.....'],
+#                    ['....O',
+#                     '...O.',
+#                     '..O..',
+#                     '.O...',
+#                     '.....'],
+#                    ['O....',
+#                     '.O...',
+#                     '..O..',
+#                     '...O.',
                      '.....']]
 
 SHAPE4_TEMPLATE = [['.....',
                      '.OOO.',
                      '.OOO.',
                      '.OOO.',
+                     '.....'],
+                   ['.....',
+                     '..O..',
+                     '.OOO.',
+                     '..O..',
                      '.....']]
 
 SHAPE5_TEMPLATE = [['.....',
@@ -105,9 +123,9 @@ SHAPE5_TEMPLATE = [['.....',
                      '.O...',
                      '.....'],
                     ['.....',
-                     '..OO.',
-                     '...O.',
-                     '...O.',
+                     '.OO..',
+                     '..O..',
+                     '..O..',
                      '.....']]
 
 SHAPE6_TEMPLATE = [['.....',
@@ -161,16 +179,23 @@ PIECES = {'1': SHAPE1_TEMPLATE,
           '7': SHAPE7_TEMPLATE}
 
 
-def main(unused):
+def main(unused, ds=None, fpsc=None):
     global FPSCLOCK, DISPLAYSURF, BASICFONT, BIGFONT, dpress
 
     dpress = ''
     wm.led = 1
     wm.rpt_mode = cwiid.RPT_BTN | cwiid.RPT_ACC
 
-    pygame.init()
-    FPSCLOCK = pygame.time.Clock()
-    DISPLAYSURF = pygame.display.set_mode((WINDOWWIDTH, WINDOWHEIGHT))
+    if not DIC:
+        pygame.init()
+    if not fpsc:
+        FPSCLOCK = pygame.time.Clock()
+    else:
+        FPSCLOCK = fpsc
+    if not ds:
+        DISPLAYSURF = pygame.display.set_mode((WINDOWWIDTH, WINDOWHEIGHT))
+    else:
+        DISPLAYSURF = ds
     BASICFONT = pygame.font.Font('freesansbold.ttf', 18)
     BIGFONT = pygame.font.Font('freesansbold.ttf', 100)
     pygame.display.set_caption('Tetriis')
@@ -235,9 +260,7 @@ def runGame():
             movingDown = False
             if dpress == 'left':
                 dpress = ''
-        if not (wm.state['buttons'] & cwiid.BTN_LEFT) and dpress == 'right':
-            dpress = ''
-        if not (wm.state['buttons'] & cwiid.BTN_LEFT) and dpress == 'left':
+        if not (wm.state['buttons'] & cwiid.BTN_RIGHT) and dpress == 'right':
             dpress = ''
 
         # moving the piece sideways
@@ -326,7 +349,8 @@ def makeTextObjs(text, font, color):
 
 def terminate():
     global QUIT
-    pygame.quit()
+    if not DIC:
+        pygame.quit()
     QUIT = 1
 
 def checkForKeyPress():

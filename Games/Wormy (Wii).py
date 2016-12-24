@@ -2,8 +2,11 @@ import random, pygame, sys, cwiid, time
 from pygame.locals import *
 
 FPS = 15
-WINDOWWIDTH = 640
-WINDOWHEIGHT = 480
+try:
+    WINDOWWIDTH, WINDOWHEIGHT = SIZE
+except NameError:
+    WINDOWWIDTH = 640
+    WINDOWHEIGHT = 480
 
 sizem = 2
 ccclock = 0
@@ -45,19 +48,28 @@ RIGHT = 'right'
 
 HEAD = 0 # syntactic sugar: index of the worm's head
 
-def main(wm):
+def main(wm, ds=None, fpsc=None):
     global FPSCLOCK, DISPLAYSURF, BASICFONT
     
     wm.led = 1
     wm.rpt_mode = cwiid.RPT_BTN | cwiid.RPT_ACC
 
-    pygame.init()
-    FPSCLOCK = pygame.time.Clock()
-    DISPLAYSURF = pygame.display.set_mode((WINDOWWIDTH, WINDOWHEIGHT))
+    if not DIC:
+        pygame.init()
+    if not fpsc:
+        FPSCLOCK = pygame.time.Clock()
+    else:
+        FPSCLOCK = fpsc
+    if not ds:
+        DISPLAYSURF = pygame.display.set_mode((WINDOWWIDTH, WINDOWHEIGHT))
+    else:
+        DISPLAYSURF = ds
     BASICFONT = pygame.font.Font('freesansbold.ttf', 18)
     pygame.display.set_caption('Wormy Wii')
 
-    showStartScreen(wm)
+    a=showStartScreen(wm)
+    if a==0:
+        return(0)
     while True:
         a=runGame(wm)
         if a==0:
@@ -71,6 +83,9 @@ def main(wm):
     return(0)
 
 def runGame(wm):# Set a random start point.
+    global sizem
+    sizem = 2
+    cellchange()
     startx = random.randint(10, CELLWIDTH - 11)
     starty = random.randint(10, CELLHEIGHT - 11)
     wormCoords = [{'x': startx,     'y': starty},
@@ -155,14 +170,13 @@ def drawSizeMsg():
 
 def checkForKeyPress():
     for event in pygame.event.get():
-        if event.type == QUIT:      #event is quit 
+        if event.type == QUIT:
             terminate()
         elif event.type == KEYDOWN:
-            if event.key == K_ESCAPE:   #event is escape key
+            if event.key == K_ESCAPE:
                 terminate()
             else:
-                return event.key   #key found return with it
-    # no quit or key events in queue so return None    
+                return event.key
     return None
 
     
@@ -216,7 +230,8 @@ def showStartScreen(wm):
         degrees3 += 15
 
 def terminate():
-    pygame.quit()
+    if not DIC:
+        pygame.quit()
 
 def getRandomLocation():
     return {'x': random.randint(0, CELLWIDTH - 1), 'y': random.randint(0, CELLHEIGHT - 1)}
